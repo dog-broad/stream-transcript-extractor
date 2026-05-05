@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stream Transcript Extractor - Extract Full Transcripts from Microsoft Stream Recordings</title>
+    <meta name="description" content="Free bookmarklet tool to extract full transcripts from Microsoft Stream recordings on SharePoint. Defeats lazy loading, supports search, speaker filtering, and download in TXT, JSON, SRT, CSV formats.">
+    <meta name="keywords" content="microsoft stream transcript, sharepoint transcript extractor, stream recording transcript download, lazy loading transcript, teams recording transcript, bookmarklet transcript, stream transcript copy, microsoft stream transcript not available, extract transcript from stream">
+    <meta name="author" content="dog-broad">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://dog-broad.github.io/stream-transcript-extractor/">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="Stream Transcript Extractor - Extract Full Transcripts from MS Stream">
+    <meta property="og:description" content="One-click bookmarklet to extract full transcripts from Microsoft Stream recordings. Defeats lazy-loaded transcript panes. Search, filter by speaker, download as TXT/JSON/SRT/CSV.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://dog-broad.github.io/stream-transcript-extractor/">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Stream Transcript Extractor">
+    <meta name="twitter:description" content="Extract full transcripts from Microsoft Stream recordings. Defeats lazy loading. One-click bookmarklet.">
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-primary: #0f0f1a;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #252545;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0b0;
+            --text-muted: #666680;
+            --accent: #00ff88;
+            --accent-dim: #00cc6a;
+            --accent-glow: rgba(0, 255, 136, 0.15);
+            --border: #333355;
+            --warning: #FFB74D;
+            --error: #ff4444;
+            --info: #64B5F6;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.7;
+            min-height: 100vh;
+        }
+
+        /* Hero */
+        .hero {
+            text-align: center;
+            padding: 80px 24px 60px;
+            background: linear-gradient(180deg, #0f0f2a 0%, var(--bg-primary) 100%);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .hero-badge {
+            display: inline-block;
+            padding: 4px 14px;
+            background: var(--accent-glow);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 20px;
+            font-size: 12px;
+            color: var(--accent);
+            margin-bottom: 20px;
+            letter-spacing: 0.5px;
+        }
+
+        .hero h1 {
+            font-size: clamp(28px, 5vw, 42px);
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 16px;
+            letter-spacing: -0.5px;
+        }
+
+        .hero h1 span { color: var(--accent); }
+
+        .hero p {
+            font-size: 16px;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Container */
+        .container {
+            max-width: 780px;
+            margin: 0 auto;
+            padding: 40px 24px;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 28px;
+        }
+
+        .card h2 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card h2 .emoji { font-size: 24px; }
+
+        /* Bookmarklet Install */
+        .install-zone {
+            text-align: center;
+            padding: 32px 20px;
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            margin: 20px 0;
+            background: rgba(0, 255, 136, 0.02);
+            transition: all 0.3s;
+        }
+
+        .install-zone:hover {
+            border-color: var(--accent-dim);
+            background: var(--accent-glow);
+        }
+
+        .install-zone p {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+
+        .bookmarklet-btn {
+            display: inline-block;
+            padding: 18px 40px;
+            background: linear-gradient(135deg, #00ff88, #00bcd4);
+            color: #000;
+            text-decoration: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: grab;
+            transition: transform 0.2s, box-shadow 0.2s;
+            user-select: none;
+        }
+
+        .bookmarklet-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 24px rgba(0, 255, 136, 0.3);
+        }
+
+        .bookmarklet-btn:active {
+            cursor: grabbing;
+            transform: scale(0.98);
+        }
+
+        .install-hint {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 12px;
+        }
+
+        /* Steps */
+        .steps { list-style: none; counter-reset: step; }
+
+        .steps li {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 22px;
+            align-items: flex-start;
+        }
+
+        .steps li::before {
+            counter-increment: step;
+            content: counter(step);
+            min-width: 32px;
+            height: 32px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--accent-dim);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--accent);
+            flex-shrink: 0;
+        }
+
+        .step-content h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+
+        .step-content p {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        /* Features Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .feature-item {
+            background: var(--bg-tertiary);
+            padding: 14px 18px;
+            border-radius: 10px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .feature-item:hover { border-color: var(--border); }
+        .feature-item .icon { font-size: 18px; }
+
+        /* Code Block */
+        .code-block-wrapper {
+            position: relative;
+            margin: 16px 0;
+        }
+
+        .code-block {
+            background: #0a0a15;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px 20px;
+            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+            font-size: 11.5px;
+            overflow-x: auto;
+            word-break: break-all;
+            white-space: pre-wrap;
+            color: var(--accent);
+            max-height: 100px;
+            overflow-y: auto;
+            line-height: 1.6;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 5px 14px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 14px 18px;
+            border-radius: 10px;
+            font-size: 13px;
+            margin: 16px 0;
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+
+        .alert-warning {
+            background: rgba(255, 183, 77, 0.08);
+            border: 1px solid rgba(255, 183, 77, 0.25);
+            color: var(--warning);
+        }
+
+        .alert-info {
+            background: rgba(100, 181, 246, 0.08);
+            border: 1px solid rgba(100, 181, 246, 0.25);
+            color: var(--info);
+        }
+
+        /* KBD */
+        kbd {
+            background: var(--bg-tertiary);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 11px;
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        /* Troubleshooting */
+        .troubleshoot-item {
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .troubleshoot-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .troubleshoot-item strong {
+            color: var(--warning);
+            font-size: 13px;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .troubleshoot-item p {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 32px 24px;
+            border-top: 1px solid var(--border);
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .footer a {
+            color: var(--accent-dim);
+            text-decoration: none;
+        }
+
+        .footer a:hover { text-decoration: underline; }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .hero { padding: 50px 20px 40px; }
+            .card { padding: 24px 20px; }
+            .bookmarklet-btn { padding: 14px 28px; font-size: 16px; }
+            .features-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Hero Section -->
+    <header class="hero">
+        <div class="hero-badge">✨ Free &amp; Open Source — No Install Required</div>
+        <h1>📜 Stream <span>Transcript</span> Extractor</h1>
+        <p>One-click bookmarklet to extract full transcripts from Microsoft Stream recordings. Defeats lazy-loaded panes. Search, filter, and download.</p>
+    </header>
+
+    <main class="container">
+
+        <!-- Install Section -->
+        <section class="card" id="install">
+            <h2><span class="emoji">⚡</span> Install in 5 Seconds</h2>
+            <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 8px;">
+                Drag the button below onto your <strong style="color:#fff;">Bookmarks Bar</strong> — that's it.
+            </p>
+
+            <div class="install-zone">
+                <p>⬇️ DRAG THIS BUTTON TO YOUR BOOKMARKS BAR ⬇️</p>
+                <a class="bookmarklet-btn"
+                   href="javascript:void((async()=>{const n=document.createElement('script');n.src='https://gist.githubusercontent.com/dog-broad/6f9c99d3e3d11a5af9ba198bab9e2e6d/raw/transcript-extractor.js?v='+Date.now();n.onload=()=>console.log('Transcript extractor loaded');n.onerror=()=>alert('Failed to load extractor script. Check network/URL.');document.head.appendChild(n);})())">
+                    📜 Extract Transcript
+                </a>
+                <p class="install-hint">Don't click — drag it to your bookmarks bar above ↑</p>
+            </div>
+
+            <div class="alert alert-warning">
+                <span>⚠️</span>
+                <span><strong>Bookmarks Bar hidden?</strong> Press <kbd>Ctrl+Shift+B</kbd> (Windows/Linux) or <kbd>Cmd+Shift+B</kbd> (Mac) to show it.</span>
+            </div>
+        </section>
+
+        <!-- How to Use -->
+        <section class="card" id="usage">
+            <h2><span class="emoji">🎯</span> How to Use</h2>
+            <ol class="steps">
+                <li>
+                    <div class="step-content">
+                        <h3>Open the Stream Recording</h3>
+                        <p>Navigate to the Microsoft Stream / SharePoint recording URL in your browser. The URL typically looks like <code>https://your-org.sharepoint.com/...stream.aspx?id=...</code></p>
+                    </div>
+                </li>
+                <li>
+                    <div class="step-content">
+                        <h3>Open the Transcript Pane</h3>
+                        <p>Click the <strong>"Transcript"</strong> button in the video player toolbar. Wait 2-3 seconds for the first entries to appear.</p>
+                    </div>
+                </li>
+                <li>
+                    <div class="step-content">
+                        <h3>Click the Bookmarklet</h3>
+                        <p>Click <strong>"📜 Extract Transcript"</strong> in your bookmarks bar. A progress overlay will appear showing extraction status.</p>
+                    </div>
+                </li>
+                <li>
+                    <div class="step-content">
+                        <h3>View Results in New Tab</h3>
+                        <p>A new tab opens with the complete transcript — searchable, color-coded by speaker, and downloadable in multiple formats.</p>
+                    </div>
+                </li>
+            </ol>
+        </section>
+
+        <!-- Features -->
+        <section class="card" id="features">
+            <h2><span class="emoji">✨</span> Features</h2>
+            <div class="features-grid">
+                <div class="feature-item"><span class="icon">🔄</span> Defeats lazy loading</div>
+                <div class="feature-item"><span class="icon">🔍</span> Full-text search (Ctrl+F)</div>
+                <div class="feature-item"><span class="icon">👥</span> Filter by speaker</div>
+                <div class="feature-item"><span class="icon">🎨</span> Color-coded speakers</div>
+                <div class="feature-item"><span class="icon">📋</span> Copy to clipboard</div>
+                <div class="feature-item"><span class="icon">📄</span> Download as .txt</div>
+                <div class="feature-item"><span class="icon">🗂️</span> Download as .json</div>
+                <div class="feature-item"><span class="icon">🎬</span> Download as .srt (subtitles)</div>
+                <div class="feature-item"><span class="icon">📊</span> Download as .csv</div>
+                <div class="feature-item"><span class="icon">⚡</span> No extension install</div>
+                <div class="feature-item"><span class="icon">🔒</span> Runs 100% in your browser</div>
+                <div class="feature-item"><span class="icon">🔁</span> Auto-updates from source</div>
+            </div>
+        </section>
+
+        <!-- Manual Install -->
+        <section class="card" id="manual-install">
+            <h2><span class="emoji">🔧</span> Manual Install</h2>
+            <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 16px;">
+                If drag-and-drop doesn't work, create a bookmark manually:
+            </p>
+            <ol class="steps">
+                <li>
+                    <div class="step-content">
+                        <h3>Right-click Bookmarks Bar → "Add page..." or "Add bookmark"</h3>
+                        <p>Alternatively, open Bookmark Manager with <kbd>Ctrl+Shift+O</kbd></p>
+                    </div>
+                </li>
+                <li>
+                    <div class="step-content">
+                        <h3>Set any name, and paste this as the URL:</h3>
+                    </div>
+                </li>
+            </ol>
+            <div class="code-block-wrapper">
+                <div class="code-block" id="bookmarkletCode">javascript:void((async()=>{const n=document.createElement('script');n.src='https://gist.githubusercontent.com/dog-broad/6f9c99d3e3d11a5af9ba198bab9e2e6d/raw/transcript-extractor.js?v='+Date.now();n.onload=()=>console.log('Transcript extractor loaded');n.onerror=()=>alert('Failed to load extractor script. Check network/URL.');document.head.appendChild(n);})())</div>
+                <button class="copy-btn" onclick="copyBookmarkletCode()">📋 Copy</button>
+            </div>
+            <div class="alert alert-info">
+                <span>💡</span>
+                <span>The bookmarklet is just a tiny loader. The actual extraction script is fetched from <a href="https://gist.github.com/dog-broad/6f9c99d3e3d11a5af9ba198bab9e2e6d" target="_blank" style="color: var(--info);">this Gist</a> every time you click, so you always get the latest version.</span>
+            </div>
+        </section>
+
+        <!-- Troubleshooting -->
+        <section class="card" id="troubleshooting">
+            <h2><span class="emoji">🛠️</span> Troubleshooting</h2>
+            <div class="troubleshoot-item">
+                <strong>Nothing happens when I click the bookmarklet</strong>
+                <p>Chrome may have stripped the <code>javascript:</code> prefix. Edit the bookmark and confirm the URL starts with <code>javascript:</code>. Also ensure you're on the Stream page, not a blank tab.</p>
+            </div>
+            <div class="troubleshoot-item">
+                <strong>Alert says "Transcript pane not found"</strong>
+                <p>The transcript panel must be open and visible before clicking. Click the "Transcript" button on the video player first, wait for entries to appear.</p>
+            </div>
+            <div class="troubleshoot-item">
+                <strong>Only partial entries extracted</strong>
+                <p>For very long recordings (1hr+), the script runs 3 scroll passes by default which covers most cases. If entries are still missing, try running the bookmarklet again — it will re-extract.</p>
+            </div>
+            <div class="troubleshoot-item">
+                <strong>New tab doesn't open / gets blocked</strong>
+                <p>Your browser's popup blocker may have blocked it. Look for a blocked popup icon in the address bar and allow popups for this site.</p>
+            </div>
+            <div class="troubleshoot-item">
+                <strong>Script fails to load</strong>
+                <p>Check if your network/VPN blocks GitHub Gist URLs. If so, you can copy the <a href="https://gist.github.com/dog-broad/6f9c99d3e3d11a5af9ba198bab9e2e6d" target="_blank" style="color: var(--info);">script source</a> and paste it directly into the browser console (F12 → Console).</p>
+            </div>
+        </section>
+
+        <!-- How It Works -->
+        <section class="card" id="how-it-works">
+            <h2><span class="emoji">⚙️</span> How It Works</h2>
+            <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 16px;">
+                Microsoft Stream's transcript pane uses a <strong style="color:#fff;">virtualized list</strong> (lazy loading) — only rendering entries visible in the viewport. This means you can never select-all or copy the full transcript. The download button is also permission-locked if you're not the recording owner.
+            </p>
+            <ol class="steps">
+                <li>
+                    <div class="step-content">
+                        <h3>Auto-Scroll</h3>
+                        <p>The script programmatically scrolls the transcript pane from top to bottom in small increments, forcing the virtualized list to render each batch of entries.</p>
+                    </div>
+                </li>
+                <li>
+                    <div class="step-content">
+                        <h3>Collect Entries</h3>
+                        <p>On each scroll step, it reads the DOM for newly rendered items — extracting speaker name, timestamp, and transcript text. Uses a Map keyed by index to deduplicate.</p>
+                    </div>
+                </li>
+                <li>
+                    <div class="step-content">
+                        <h3>Multiple Passes</h3>
+                        <p>Runs 3 complete scroll passes for reliability, since the virtualized list may unload previously rendered items. Each pass fills gaps from prior passes.</p>
+                    </div>
+                </li>
+                <li>
+                    <div class="step-content">
+                        <h3>Generate Results Page</h3>
+                        <p>Constructs a self-contained HTML page with the extracted data embedded, opens it in a new tab. The page has its own search, filtering, and export functionality.</p>
+                    </div>
+                </li>
+            </ol>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>
+            Built by <a href="https://github.com/dog-broad" target="_blank">dog-broad</a> · 
+            <a href="https://github.com/dog-broad/stream-transcript-extractor" target="_blank">Source on GitHub</a> · 
+            <a href="https://gist.github.com/dog-broad/6f9c99d3e3d11a5af9ba198bab9e2e6d" target="_blank">Extractor Script (Gist)</a>
+        </p>
+        <p style="margin-top: 8px; color: #444;">No data is sent anywhere. Everything runs locally in your browser.</p>
+    </footer>
+
+    <!-- Structured Data for SEO -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Stream Transcript Extractor",
+        "description": "Bookmarklet tool to extract full transcripts from Microsoft Stream recordings on SharePoint. Defeats lazy-loaded transcript panes.",
+        "applicationCategory": "BrowserApplication",
+        "operatingSystem": "Any (Browser-based)",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "author": { "@type": "Person", "name": "dog-broad", "url": "https://github.com/dog-broad" }
+    }
+    </script>
+
+    <script>
+        function copyBookmarkletCode() {
+            const code = document.getElementById('bookmarkletCode').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                const original = btn.textContent;
+                btn.textContent = '✅ Copied!';
+                btn.style.background = 'var(--accent)';
+                btn.style.color = '#000';
+                setTimeout(() => {
+                    btn.textContent = original;
+                    btn.style.background = '';
+                    btn.style.color = '';
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>
