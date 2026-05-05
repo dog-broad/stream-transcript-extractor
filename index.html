@@ -3,568 +3,972 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stream Transcript Extractor - Extract Full Transcripts from Microsoft Stream Recordings</title>
+    <title>Stream Transcript Extractor — Extract Full Transcripts from Microsoft Stream Recordings</title>
     <meta name="description" content="Free bookmarklet tool to extract full transcripts from Microsoft Stream recordings on SharePoint. Defeats lazy loading, supports search, speaker filtering, and download in TXT, JSON, SRT, CSV formats.">
     <meta name="keywords" content="microsoft stream transcript, sharepoint transcript extractor, stream recording transcript download, lazy loading transcript, teams recording transcript, bookmarklet transcript, stream transcript copy, microsoft stream transcript not available, extract transcript from stream">
     <meta name="author" content="dog-broad">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://dog-broad.github.io/stream-transcript-extractor/">
-    
-    <!-- Open Graph -->
-    <meta property="og:title" content="Stream Transcript Extractor - Extract Full Transcripts from MS Stream">
+
+    <meta property="og:title" content="Stream Transcript Extractor — Extract Full Transcripts from MS Stream">
     <meta property="og:description" content="One-click bookmarklet to extract full transcripts from Microsoft Stream recordings. Defeats lazy-loaded transcript panes. Search, filter by speaker, download as TXT/JSON/SRT/CSV.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://dog-broad.github.io/stream-transcript-extractor/">
-    
-    <!-- Twitter Card -->
+
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Stream Transcript Extractor">
     <meta name="twitter:description" content="Extract full transcripts from Microsoft Stream recordings. Defeats lazy loading. One-click bookmarklet.">
 
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
-            --bg-primary: #0f0f1a;
-            --bg-secondary: #1a1a2e;
-            --bg-tertiary: #252545;
-            --text-primary: #e0e0e0;
-            --text-secondary: #a0a0b0;
-            --text-muted: #666680;
+            --bg-primary: #08080f;
+            --bg-secondary: #10101e;
+            --bg-card: #14142a;
+            --bg-elevated: #1c1c3a;
+            --text-primary: #eaeaef;
+            --text-secondary: #8888a8;
+            --text-muted: #555570;
             --accent: #00ff88;
-            --accent-dim: #00cc6a;
-            --accent-glow: rgba(0, 255, 136, 0.15);
-            --border: #333355;
-            --warning: #FFB74D;
-            --error: #ff4444;
-            --info: #64B5F6;
+            --accent-secondary: #00bcd4;
+            --accent-glow: rgba(0, 255, 136, 0.08);
+            --accent-glow-strong: rgba(0, 255, 136, 0.2);
+            --border: #222244;
+            --border-light: #2a2a50;
+            --radius: 12px;
+            --radius-lg: 20px;
+            --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
+
+        html { height: 100%; }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
-            line-height: 1.7;
-            min-height: 100vh;
-        }
-
-        /* Hero */
-        .hero {
-            text-align: center;
-            padding: 80px 24px 60px;
-            background: linear-gradient(180deg, #0f0f2a 0%, var(--bg-primary) 100%);
-            border-bottom: 1px solid var(--border);
-        }
-
-        .hero-badge {
-            display: inline-block;
-            padding: 4px 14px;
-            background: var(--accent-glow);
-            border: 1px solid rgba(0, 255, 136, 0.3);
-            border-radius: 20px;
-            font-size: 12px;
-            color: var(--accent);
-            margin-bottom: 20px;
-            letter-spacing: 0.5px;
-        }
-
-        .hero h1 {
-            font-size: clamp(28px, 5vw, 42px);
-            font-weight: 700;
-            color: #fff;
-            margin-bottom: 16px;
-            letter-spacing: -0.5px;
-        }
-
-        .hero h1 span { color: var(--accent); }
-
-        .hero p {
-            font-size: 16px;
-            color: var(--text-secondary);
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        /* Container */
-        .container {
-            max-width: 780px;
-            margin: 0 auto;
-            padding: 40px 24px;
-        }
-
-        /* Cards */
-        .card {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 32px;
-            margin-bottom: 28px;
-        }
-
-        .card h2 {
-            font-size: 20px;
-            font-weight: 600;
-            color: #fff;
-            margin-bottom: 20px;
+            height: 100%;
+            overflow: hidden;
             display: flex;
-            align-items: center;
-            gap: 10px;
+            flex-direction: column;
         }
 
-        .card h2 .emoji { font-size: 24px; }
+        /* ===== LAYOUT: Two-panel split ===== */
+        .app {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr;
+            height: 100vh;
+            overflow: hidden;
+        }
 
-        /* Bookmarklet Install */
-        .install-zone {
+        /* ===== LEFT PANEL: Hero + Install ===== */
+        .panel-left {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 48px;
+            position: relative;
+            overflow: hidden;
+            border-right: 1px solid var(--border);
+        }
+
+        .panel-left::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(ellipse at 30% 50%, rgba(0,255,136,0.03) 0%, transparent 50%),
+                        radial-gradient(ellipse at 70% 80%, rgba(0,188,212,0.02) 0%, transparent 40%);
+            pointer-events: none;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
             text-align: center;
-            padding: 32px 20px;
-            border: 2px dashed var(--border);
-            border-radius: 12px;
-            margin: 20px 0;
-            background: rgba(0, 255, 136, 0.02);
-            transition: all 0.3s;
+            max-width: 460px;
+        }
+
+        .logo {
+            font-size: 48px;
+            margin-bottom: 16px;
+            display: block;
+        }
+
+        .hero-content h1 {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 12px;
+            line-height: 1.2;
+        }
+
+        .hero-content h1 .highlight {
+            background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-content p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin-bottom: 36px;
+        }
+
+        /* Install Zone */
+        .install-zone {
+            width: 100%;
+            padding: 28px;
+            border: 2px dashed var(--border-light);
+            border-radius: var(--radius-lg);
+            background: var(--accent-glow);
+            text-align: center;
+            transition: var(--transition);
         }
 
         .install-zone:hover {
-            border-color: var(--accent-dim);
-            background: var(--accent-glow);
+            border-color: var(--accent);
+            background: var(--accent-glow-strong);
         }
 
-        .install-zone p {
-            font-size: 13px;
+        .install-zone .hint {
+            font-size: 11px;
             color: var(--text-muted);
-            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 14px;
         }
 
         .bookmarklet-btn {
-            display: inline-block;
-            padding: 18px 40px;
-            background: linear-gradient(135deg, #00ff88, #00bcd4);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 36px;
+            background: linear-gradient(135deg, #00ff88, #00e07a, #00bcd4);
             color: #000;
             text-decoration: none;
-            border-radius: 12px;
-            font-size: 18px;
+            border-radius: 50px;
+            font-size: 16px;
             font-weight: 700;
             cursor: grab;
             transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 20px rgba(0,255,136,0.2);
             user-select: none;
         }
 
         .bookmarklet-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 6px 24px rgba(0, 255, 136, 0.3);
+            transform: scale(1.06) translateY(-2px);
+            box-shadow: 0 8px 32px rgba(0,255,136,0.35);
         }
 
         .bookmarklet-btn:active {
             cursor: grabbing;
-            transform: scale(0.98);
+            transform: scale(0.97);
         }
 
-        .install-hint {
+        .install-zone .subhint {
             font-size: 11px;
             color: var(--text-muted);
-            margin-top: 12px;
+            margin-top: 14px;
         }
+
+        .keyboard-hint {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 20px;
+            padding: 8px 14px;
+            background: var(--bg-elevated);
+            border-radius: 8px;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        kbd {
+            background: var(--bg-primary);
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 11px;
+            border: 1px solid var(--border);
+            color: var(--accent);
+        }
+
+        /* ===== RIGHT PANEL: Tabs + Content ===== */
+        .panel-right {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: var(--bg-secondary);
+        }
+
+        /* Tab Nav */
+        .tab-nav {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-card);
+            flex-shrink: 0;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+
+        .tab-nav::-webkit-scrollbar { display: none; }
+
+        .tab-btn {
+            padding: 16px 20px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            background: none;
+            border: none;
+            cursor: pointer;
+            white-space: nowrap;
+            position: relative;
+            transition: color var(--transition);
+        }
+
+        .tab-btn:hover { color: var(--text-primary); }
+
+        .tab-btn.active {
+            color: var(--accent);
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 16px;
+            right: 16px;
+            height: 2px;
+            background: var(--accent);
+            border-radius: 2px 2px 0 0;
+        }
+
+        /* Tab Content */
+        .tab-content-wrapper {
+            flex: 1;
+            overflow-y: auto;
+            padding: 32px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+        }
+
+        .tab-content-wrapper::-webkit-scrollbar { width: 6px; }
+        .tab-content-wrapper::-webkit-scrollbar-track { background: transparent; }
+        .tab-content-wrapper::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        .tab-panel { display: none; animation: fadeIn 0.3s ease; }
+        .tab-panel.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ===== SHARED COMPONENTS ===== */
 
         /* Steps */
-        .steps { list-style: none; counter-reset: step; }
+        .step-list { list-style: none; }
 
-        .steps li {
+        .step-item {
             display: flex;
             gap: 16px;
-            margin-bottom: 22px;
-            align-items: flex-start;
+            padding: 18px 0;
+            border-bottom: 1px solid var(--border);
         }
 
-        .steps li::before {
-            counter-increment: step;
-            content: counter(step);
-            min-width: 32px;
+        .step-item:last-child { border-bottom: none; }
+
+        .step-num {
+            width: 32px;
             height: 32px;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--accent-dim);
             border-radius: 50%;
+            background: var(--accent-glow-strong);
+            border: 1px solid var(--accent);
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 13px;
-            font-weight: 600;
+            font-weight: 700;
             color: var(--accent);
             flex-shrink: 0;
         }
 
-        .step-content h3 {
+        .step-body h3 {
             font-size: 14px;
             font-weight: 600;
-            color: #fff;
             margin-bottom: 4px;
         }
 
-        .step-content p {
+        .step-body p {
             font-size: 13px;
             color: var(--text-secondary);
+            line-height: 1.6;
         }
 
-        /* Features Grid */
-        .features-grid {
+        /* Feature Grid */
+        .feature-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 12px;
-        }
-
-        .feature-item {
-            background: var(--bg-tertiary);
-            padding: 14px 18px;
-            border-radius: 10px;
-            font-size: 13px;
-            display: flex;
-            align-items: center;
+            grid-template-columns: repeat(2, 1fr);
             gap: 10px;
-            border: 1px solid transparent;
-            transition: border-color 0.2s;
         }
 
-        .feature-item:hover { border-color: var(--border); }
-        .feature-item .icon { font-size: 18px; }
+        .feature-card {
+            padding: 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            transition: var(--transition);
+        }
 
-        /* Code Block */
-        .code-block-wrapper {
+        .feature-card:hover {
+            border-color: var(--accent);
+            background: var(--accent-glow);
+        }
+
+        .feature-card .icon {
+            font-size: 20px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .feature-card h4 {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .feature-card p {
+            font-size: 11px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* Code block */
+        .code-wrapper {
             position: relative;
             margin: 16px 0;
         }
 
         .code-block {
-            background: #0a0a15;
+            background: var(--bg-primary);
             border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 16px 20px;
-            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
-            font-size: 11.5px;
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+            font-size: 11px;
+            color: var(--accent);
             overflow-x: auto;
             word-break: break-all;
             white-space: pre-wrap;
-            color: var(--accent);
-            max-height: 100px;
+            line-height: 1.7;
+            max-height: 80px;
             overflow-y: auto;
-            line-height: 1.6;
         }
 
-        .copy-btn {
+        .code-copy-btn {
             position: absolute;
-            top: 10px;
-            right: 10px;
-            padding: 5px 14px;
-            background: var(--bg-tertiary);
+            top: 8px;
+            right: 8px;
+            padding: 4px 12px;
+            background: var(--bg-elevated);
             border: 1px solid var(--border);
-            color: var(--text-primary);
+            color: var(--text-secondary);
             border-radius: 6px;
             cursor: pointer;
             font-size: 11px;
-            transition: all 0.2s;
+            transition: var(--transition);
         }
 
-        .copy-btn:hover {
+        .code-copy-btn:hover {
             background: var(--accent);
             color: #000;
             border-color: var(--accent);
         }
 
-        /* Alerts */
-        .alert {
-            padding: 14px 18px;
-            border-radius: 10px;
-            font-size: 13px;
-            margin: 16px 0;
-            display: flex;
-            gap: 10px;
-            align-items: flex-start;
-        }
-
-        .alert-warning {
-            background: rgba(255, 183, 77, 0.08);
-            border: 1px solid rgba(255, 183, 77, 0.25);
-            color: var(--warning);
-        }
-
-        .alert-info {
-            background: rgba(100, 181, 246, 0.08);
-            border: 1px solid rgba(100, 181, 246, 0.25);
-            color: var(--info);
-        }
-
-        /* KBD */
-        kbd {
-            background: var(--bg-tertiary);
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-family: monospace;
-            font-size: 11px;
-            border: 1px solid var(--border);
-            color: var(--text-primary);
-        }
-
-        /* Troubleshooting */
+        /* Troubleshoot */
         .troubleshoot-item {
-            margin-bottom: 16px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid var(--border);
+            padding: 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: var(--transition);
         }
 
-        .troubleshoot-item:last-child {
-            border-bottom: none;
-            margin-bottom: 0;
-            padding-bottom: 0;
-        }
+        .troubleshoot-item:hover { border-color: var(--border-light); }
 
-        .troubleshoot-item strong {
-            color: var(--warning);
+        .troubleshoot-item summary {
             font-size: 13px;
-            display: block;
-            margin-bottom: 4px;
+            font-weight: 600;
+            color: #FFB74D;
+            cursor: pointer;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .troubleshoot-item summary::before {
+            content: '▸';
+            font-size: 12px;
+            transition: transform var(--transition);
+        }
+
+        .troubleshoot-item[open] summary::before {
+            transform: rotate(90deg);
         }
 
         .troubleshoot-item p {
             font-size: 13px;
             color: var(--text-secondary);
+            margin-top: 10px;
+            line-height: 1.7;
+            padding-left: 20px;
         }
 
-        /* Footer */
-        .footer {
-            text-align: center;
-            padding: 32px 24px;
-            border-top: 1px solid var(--border);
+        /* Architecture diagram */
+        .arch-flow {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin: 16px 0;
+        }
+
+        .arch-node {
+            padding: 14px 18px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
             font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .arch-node .node-icon {
+            font-size: 18px;
+            min-width: 24px;
+            text-align: center;
+        }
+
+        .arch-node .node-label {
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .arch-node .node-desc {
+            color: var(--text-secondary);
+            font-size: 11px;
+        }
+
+        .arch-arrow {
+            text-align: center;
+            color: var(--accent);
+            font-size: 14px;
+            padding: 2px 0;
+        }
+
+        /* Section titles inside tabs */
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            line-height: 1.7;
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-radius: 20px;
+            background: var(--accent-glow-strong);
+            color: var(--accent);
+            border: 1px solid rgba(0,255,136,0.2);
+        }
+
+        /* Footer links in left panel */
+        .footer-links {
+            position: absolute;
+            bottom: 24px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 11px;
             color: var(--text-muted);
         }
 
-        .footer a {
-            color: var(--accent-dim);
+        .footer-links a {
+            color: var(--text-secondary);
             text-decoration: none;
+            margin: 0 8px;
+            transition: color var(--transition);
         }
 
-        .footer a:hover { text-decoration: underline; }
+        .footer-links a:hover { color: var(--accent); }
 
-        /* Responsive */
-        @media (max-width: 600px) {
-            .hero { padding: 50px 20px 40px; }
-            .card { padding: 24px 20px; }
-            .bookmarklet-btn { padding: 14px 28px; font-size: 16px; }
-            .features-grid { grid-template-columns: 1fr; }
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 900px) {
+            .app {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr;
+                overflow: auto;
+            }
+
+            body { overflow: auto; }
+
+            .panel-left {
+                padding: 40px 24px 32px;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+                min-height: auto;
+            }
+
+            .panel-right {
+                min-height: 60vh;
+            }
+
+            .hero-content { max-width: 100%; }
+            .feature-grid { grid-template-columns: 1fr; }
+            .footer-links { position: static; margin-top: 24px; }
+            .tab-content-wrapper { padding: 24px 16px; }
+        }
+
+        @media (max-width: 480px) {
+            .panel-left { padding: 32px 16px 24px; }
+            .bookmarklet-btn { padding: 14px 24px; font-size: 14px; }
+            .install-zone { padding: 20px 16px; }
+            .tab-btn { padding: 14px 14px; font-size: 12px; }
         }
     </style>
 </head>
 <body>
 
-    <!-- Hero Section -->
-    <header class="hero">
-        <div class="hero-badge">✨ Free &amp; Open Source — No Install Required</div>
-        <h1>📜 Stream <span>Transcript</span> Extractor</h1>
-        <p>One-click bookmarklet to extract full transcripts from Microsoft Stream recordings. Defeats lazy-loaded panes. Search, filter, and download.</p>
-    </header>
+<div class="app">
+    <!-- ===== LEFT: Hero + Install (always visible) ===== -->
+    <section class="panel-left">
+        <div class="hero-content">
+            <span class="logo">📜</span>
+            <h1>Stream <span class="highlight">Transcript</span> Extractor</h1>
+            <p>Extract full transcripts from Microsoft Stream recordings — even when download is disabled. Defeats lazy-loaded panes with one click.</p>
 
-    <main class="container">
-
-        <!-- Install Section -->
-        <section class="card" id="install">
-            <h2><span class="emoji">⚡</span> Install in 5 Seconds</h2>
-            <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 8px;">
-                Drag the button below onto your <strong style="color:#fff;">Bookmarks Bar</strong> — that's it.
-            </p>
-
-            <div class="install-zone">
-                <p>⬇️ DRAG THIS BUTTON TO YOUR BOOKMARKS BAR ⬇️</p>
+            <div class="install-zone" id="installZone">
+                <div class="hint">⬇ Drag to your bookmarks bar</div>
                 <a class="bookmarklet-btn"
-                   href="javascript:void((async()=>{const n=document.createElement('script');n.src='https://gist.githubusercontent.com/dog-broad/6f9c99d3e3d11a5af9ba198bab9e2e6d/raw/transcript-extractor.js?v='+Date.now();n.onload=()=>console.log('Transcript extractor loaded');n.onerror=()=>alert('Failed to load extractor script. Check network/URL.');document.head.appendChild(n);})())">
+                   href="javascript:void((async()=>{try{var r=await fetch('https://gist.githubusercontent.com/dog-broad/6f9c99d3e3d11a5af9ba198bab9e2e6d/raw/transcript-extractor.js?v='+Date.now());if(!r.ok)throw new Error('HTTP '+r.status);var t=await r.text();eval(t);}catch(e){alert('Failed to load transcript extractor: '+e.message);}})())">
                     📜 Extract Transcript
                 </a>
-                <p class="install-hint">Don't click — drag it to your bookmarks bar above ↑</p>
+                <div class="subhint">Don't click here — drag it up to your bookmarks bar</div>
             </div>
 
-            <div class="alert alert-warning">
-                <span>⚠️</span>
-                <span><strong>Bookmarks Bar hidden?</strong> Press <kbd>Ctrl+Shift+B</kbd> (Windows/Linux) or <kbd>Cmd+Shift+B</kbd> (Mac) to show it.</span>
+            <div class="keyboard-hint">
+                Bookmarks bar hidden? Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> to show it
             </div>
-        </section>
+        </div>
 
-        <!-- How to Use -->
-        <section class="card" id="usage">
-            <h2><span class="emoji">🎯</span> How to Use</h2>
-            <ol class="steps">
-                <li>
-                    <div class="step-content">
-                        <h3>Open the Stream Recording</h3>
-                        <p>Navigate to the Microsoft Stream / SharePoint recording URL in your browser. The URL typically looks like <code>https://your-org.sharepoint.com/...stream.aspx?id=...</code></p>
-                    </div>
-                </li>
-                <li>
-                    <div class="step-content">
-                        <h3>Open the Transcript Pane</h3>
-                        <p>Click the <strong>"Transcript"</strong> button in the video player toolbar. Wait 2-3 seconds for the first entries to appear.</p>
-                    </div>
-                </li>
-                <li>
-                    <div class="step-content">
-                        <h3>Click the Bookmarklet</h3>
-                        <p>Click <strong>"📜 Extract Transcript"</strong> in your bookmarks bar. A progress overlay will appear showing extraction status.</p>
-                    </div>
-                </li>
-                <li>
-                    <div class="step-content">
-                        <h3>View Results in New Tab</h3>
-                        <p>A new tab opens with the complete transcript — searchable, color-coded by speaker, and downloadable in multiple formats.</p>
-                    </div>
-                </li>
-            </ol>
-        </section>
+        <div class="footer-links">
+            <a href="https://github.com/dog-broad/stream-transcript-extractor" target="_blank">GitHub</a>
+            <a href="https://gist.github.com/dog-broad/6f9c99d3e3d11a5af9ba198bab9e2e6d" target="_blank">Source Script</a>
+            <span style="color:var(--border);">|</span>
+            <span class="badge">v1.1</span>
+        </div>
+    </section>
 
-        <!-- Features -->
-        <section class="card" id="features">
-            <h2><span class="emoji">✨</span> Features</h2>
-            <div class="features-grid">
-                <div class="feature-item"><span class="icon">🔄</span> Defeats lazy loading</div>
-                <div class="feature-item"><span class="icon">🔍</span> Full-text search (Ctrl+F)</div>
-                <div class="feature-item"><span class="icon">👥</span> Filter by speaker</div>
-                <div class="feature-item"><span class="icon">🎨</span> Color-coded speakers</div>
-                <div class="feature-item"><span class="icon">📋</span> Copy to clipboard</div>
-                <div class="feature-item"><span class="icon">📄</span> Download as .txt</div>
-                <div class="feature-item"><span class="icon">🗂️</span> Download as .json</div>
-                <div class="feature-item"><span class="icon">🎬</span> Download as .srt (subtitles)</div>
-                <div class="feature-item"><span class="icon">📊</span> Download as .csv</div>
-                <div class="feature-item"><span class="icon">⚡</span> No extension install</div>
-                <div class="feature-item"><span class="icon">🔒</span> Runs 100% in your browser</div>
-                <div class="feature-item"><span class="icon">🔁</span> Auto-updates from source</div>
-            </div>
-        </section>
+    <!-- ===== RIGHT: Tabbed Content ===== -->
+    <section class="panel-right">
+        <nav class="tab-nav" role="tablist">
+            <button class="tab-btn active" data-tab="usage" role="tab" aria-selected="true">Usage</button>
+            <button class="tab-btn" data-tab="features" role="tab" aria-selected="false">Features</button>
+            <button class="tab-btn" data-tab="how" role="tab" aria-selected="false">How It Works</button>
+            <button class="tab-btn" data-tab="troubleshoot" role="tab" aria-selected="false">Troubleshoot</button>
+            <button class="tab-btn" data-tab="manual" role="tab" aria-selected="false">Manual Install</button>
+        </nav>
 
-        <!-- Manual Install -->
-        <section class="card" id="manual-install">
-            <h2><span class="emoji">🔧</span> Manual Install</h2>
-            <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 16px;">
-                If drag-and-drop doesn't work, create a bookmark manually:
-            </p>
-            <ol class="steps">
-                <li>
-                    <div class="step-content">
-                        <h3>Right-click Bookmarks Bar → "Add page..." or "Add bookmark"</h3>
-                        <p>Alternatively, open Bookmark Manager with <kbd>Ctrl+Shift+O</kbd></p>
-                    </div>
-                </li>
-                <li>
-                    <div class="step-content">
-                        <h3>Set any name, and paste this as the URL:</h3>
-                    </div>
-                </li>
-            </ol>
-            <div class="code-block-wrapper">
-                <div class="code-block" id="bookmarkletCode">javascript:void((async()=>{const n=document.createElement('script');n.src='https://gist.githubusercontent.com/dog-broad/6f9c99d3e3d11a5af9ba198bab9e2e6d/raw/transcript-extractor.js?v='+Date.now();n.onload=()=>console.log('Transcript extractor loaded');n.onerror=()=>alert('Failed to load extractor script. Check network/URL.');document.head.appendChild(n);})())</div>
-                <button class="copy-btn" onclick="copyBookmarkletCode()">📋 Copy</button>
-            </div>
-            <div class="alert alert-info">
-                <span>💡</span>
-                <span>The bookmarklet is just a tiny loader. The actual extraction script is fetched from <a href="https://gist.github.com/dog-broad/6f9c99d3e3d11a5af9ba198bab9e2e6d" target="_blank" style="color: var(--info);">this Gist</a> every time you click, so you always get the latest version.</span>
-            </div>
-        </section>
+        <div class="tab-content-wrapper">
 
-        <!-- Troubleshooting -->
-        <section class="card" id="troubleshooting">
-            <h2><span class="emoji">🛠️</span> Troubleshooting</h2>
-            <div class="troubleshoot-item">
-                <strong>Nothing happens when I click the bookmarklet</strong>
-                <p>Chrome may have stripped the <code>javascript:</code> prefix. Edit the bookmark and confirm the URL starts with <code>javascript:</code>. Also ensure you're on the Stream page, not a blank tab.</p>
+            <!-- TAB: Usage -->
+            <div class="tab-panel active" id="tab-usage" role="tabpanel">
+                <div class="section-title">🎯 How to Use</div>
+                <div class="section-subtitle">Four simple steps — takes under 60 seconds for any recording.</div>
+                <ol class="step-list">
+                    <li class="step-item">
+                        <div class="step-num">1</div>
+                        <div class="step-body">
+                            <h3>Open the Stream Recording</h3>
+                            <p>Navigate to the Microsoft Stream / SharePoint recording URL. Typically looks like <code>https://[org].sharepoint.com/.../stream.aspx?id=...</code></p>
+                        </div>
+                    </li>
+                    <li class="step-item">
+                        <div class="step-num">2</div>
+                        <div class="step-body">
+                            <h3>Open the Transcript Pane</h3>
+                            <p>Click the <strong>"Transcript"</strong> button in the video player toolbar. Wait 2-3 seconds for the initial entries to appear on the right side.</p>
+                        </div>
+                    </li>
+                    <li class="step-item">
+                        <div class="step-num">3</div>
+                        <div class="step-body">
+                            <h3>Click the Bookmarklet</h3>
+                            <p>Click <strong>"📜 Extract Transcript"</strong> in your bookmarks bar. A progress overlay appears showing extraction status with a live entry counter.</p>
+                        </div>
+                    </li>
+                    <li class="step-item">
+                        <div class="step-num">4</div>
+                        <div class="step-body">
+                            <h3>View Results in New Tab</h3>
+                            <p>A new tab opens with the complete transcript — fully searchable, color-coded by speaker, and downloadable in 4 formats.</p>
+                        </div>
+                    </li>
+                </ol>
             </div>
-            <div class="troubleshoot-item">
-                <strong>Alert says "Transcript pane not found"</strong>
-                <p>The transcript panel must be open and visible before clicking. Click the "Transcript" button on the video player first, wait for entries to appear.</p>
-            </div>
-            <div class="troubleshoot-item">
-                <strong>Only partial entries extracted</strong>
-                <p>For very long recordings (1hr+), the script runs 3 scroll passes by default which covers most cases. If entries are still missing, try running the bookmarklet again — it will re-extract.</p>
-            </div>
-            <div class="troubleshoot-item">
-                <strong>New tab doesn't open / gets blocked</strong>
-                <p>Your browser's popup blocker may have blocked it. Look for a blocked popup icon in the address bar and allow popups for this site.</p>
-            </div>
-            <div class="troubleshoot-item">
-                <strong>Script fails to load</strong>
-                <p>Check if your network/VPN blocks GitHub Gist URLs. If so, you can copy the <a href="https://gist.github.com/dog-broad/6f9c99d3e3d11a5af9ba198bab9e2e6d" target="_blank" style="color: var(--info);">script source</a> and paste it directly into the browser console (F12 → Console).</p>
-            </div>
-        </section>
 
-        <!-- How It Works -->
-        <section class="card" id="how-it-works">
-            <h2><span class="emoji">⚙️</span> How It Works</h2>
-            <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 16px;">
-                Microsoft Stream's transcript pane uses a <strong style="color:#fff;">virtualized list</strong> (lazy loading) — only rendering entries visible in the viewport. This means you can never select-all or copy the full transcript. The download button is also permission-locked if you're not the recording owner.
-            </p>
-            <ol class="steps">
-                <li>
-                    <div class="step-content">
-                        <h3>Auto-Scroll</h3>
-                        <p>The script programmatically scrolls the transcript pane from top to bottom in small increments, forcing the virtualized list to render each batch of entries.</p>
+            <!-- TAB: Features -->
+            <div class="tab-panel" id="tab-features" role="tabpanel">
+                <div class="section-title">✨ Features</div>
+                <div class="section-subtitle">Everything you need to work with meeting transcripts efficiently.</div>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <span class="icon">🔄</span>
+                        <h4>Defeats Lazy Loading</h4>
+                        <p>Auto-scrolls the virtualized list across 3 passes to force all entries to render.</p>
                     </div>
-                </li>
-                <li>
-                    <div class="step-content">
-                        <h3>Collect Entries</h3>
-                        <p>On each scroll step, it reads the DOM for newly rendered items — extracting speaker name, timestamp, and transcript text. Uses a Map keyed by index to deduplicate.</p>
+                    <div class="feature-card">
+                        <span class="icon">🔍</span>
+                        <h4>Full-Text Search</h4>
+                        <p>Instant search with highlighted matches. Overrides Ctrl+F for the transcript.</p>
                     </div>
-                </li>
-                <li>
-                    <div class="step-content">
-                        <h3>Multiple Passes</h3>
-                        <p>Runs 3 complete scroll passes for reliability, since the virtualized list may unload previously rendered items. Each pass fills gaps from prior passes.</p>
+                    <div class="feature-card">
+                        <span class="icon">👥</span>
+                        <h4>Speaker Filtering</h4>
+                        <p>Toggle individual speakers on/off with filter chips. Isolate who said what.</p>
                     </div>
-                </li>
-                <li>
-                    <div class="step-content">
-                        <h3>Generate Results Page</h3>
-                        <p>Constructs a self-contained HTML page with the extracted data embedded, opens it in a new tab. The page has its own search, filtering, and export functionality.</p>
+                    <div class="feature-card">
+                        <span class="icon">🎨</span>
+                        <h4>Color-Coded Speakers</h4>
+                        <p>8 distinct colors auto-assigned to speakers for easy visual scanning.</p>
                     </div>
-                </li>
-            </ol>
-        </section>
+                    <div class="feature-card">
+                        <span class="icon">📄</span>
+                        <h4>Download as .txt</h4>
+                        <p>Clean plain text format with speaker headers and timestamps.</p>
+                    </div>
+                    <div class="feature-card">
+                        <span class="icon">🗂️</span>
+                        <h4>Download as .json</h4>
+                        <p>Structured data with metadata — perfect for programmatic use.</p>
+                    </div>
+                    <div class="feature-card">
+                        <span class="icon">🎬</span>
+                        <h4>Download as .srt</h4>
+                        <p>Subtitle format compatible with video players and editors.</p>
+                    </div>
+                    <div class="feature-card">
+                        <span class="icon">📊</span>
+                        <h4>Download as .csv</h4>
+                        <p>Spreadsheet-ready with columns for index, timestamp, speaker, text.</p>
+                    </div>
+                    <div class="feature-card">
+                        <span class="icon">📋</span>
+                        <h4>Copy to Clipboard</h4>
+                        <p>One-click copy of the entire formatted transcript.</p>
+                    </div>
+                    <div class="feature-card">
+                        <span class="icon">🔒</span>
+                        <h4>100% Client-Side</h4>
+                        <p>No data leaves your browser. No server. No tracking. Fully local.</p>
+                    </div>
+                    <div class="feature-card">
+                        <span class="icon">🔁</span>
+                        <h4>Auto-Updates</h4>
+                        <p>Script fetched fresh from source on every click. Always latest version.</p>
+                    </div>
+                    <div class="feature-card">
+                        <span class="icon">⚡</span>
+                        <h4>Zero Install</h4>
+                        <p>Just a bookmark. Works in Chrome, Edge, Firefox. No extension needed.</p>
+                    </div>
+                </div>
+            </div>
 
-    </main>
+            <!-- TAB: How It Works -->
+            <div class="tab-panel" id="tab-how" role="tabpanel">
+                <div class="section-title">⚙️ How It Works</div>
+                <div class="section-subtitle">
+                    Microsoft Stream's transcript pane uses a <strong>virtualized list</strong> — only rendering entries visible in the viewport. This makes it impossible to select-all or copy. The download button is also permission-locked.
+                </div>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <p>
-            Built by <a href="https://github.com/dog-broad" target="_blank">dog-broad</a> · 
-            <a href="https://github.com/dog-broad/stream-transcript-extractor" target="_blank">Source on GitHub</a> · 
-            <a href="https://gist.github.com/dog-broad/6f9c99d3e3d11a5af9ba198bab9e2e6d" target="_blank">Extractor Script (Gist)</a>
-        </p>
-        <p style="margin-top: 8px; color: #444;">No data is sent anywhere. Everything runs locally in your browser.</p>
-    </footer>
+                <div class="arch-flow">
+                    <div class="arch-node">
+                        <span class="node-icon">🔖</span>
+                        <div>
+                            <div class="node-label">Bookmarklet Click</div>
+                            <div class="node-desc">Tiny loader in your bookmarks bar — fetches the main script</div>
+                        </div>
+                    </div>
+                    <div class="arch-arrow">↓</div>
+                    <div class="arch-node">
+                        <span class="node-icon">📡</span>
+                        <div>
+                            <div class="node-label">Fetch Script from Gist</div>
+                            <div class="node-desc">Main extraction logic loaded fresh (cache-busted) every time</div>
+                        </div>
+                    </div>
+                    <div class="arch-arrow">↓</div>
+                    <div class="arch-node">
+                        <span class="node-icon">📜</span>
+                        <div>
+                            <div class="node-label">Auto-Scroll Transcript Pane</div>
+                            <div class="node-desc">Scrolls in 280px increments, 160ms delay — forces lazy list to render all items</div>
+                        </div>
+                    </div>
+                    <div class="arch-arrow">↓</div>
+                    <div class="arch-node">
+                        <span class="node-icon">🧲</span>
+                        <div>
+                            <div class="node-label">Collect DOM Entries</div>
+                            <div class="node-desc">Reads speaker, timestamp, text from each rendered cell. Deduplicates via index Map.</div>
+                        </div>
+                    </div>
+                    <div class="arch-arrow">↓</div>
+                    <div class="arch-node">
+                        <span class="node-icon">🔁</span>
+                        <div>
+                            <div class="node-label">3 Complete Passes</div>
+                            <div class="node-desc">Re-scrolls from top multiple times — fills gaps from virtualization destroying earlier items</div>
+                        </div>
+                    </div>
+                    <div class="arch-arrow">↓</div>
+                    <div class="arch-node">
+                        <span class="node-icon">✨</span>
+                        <div>
+                            <div class="node-label">Open Results in New Tab</div>
+                            <div class="node-desc">Self-contained HTML page with search, filter, color coding, and 4 export formats</div>
+                        </div>
+                    </div>
+                </div>
 
-    <!-- Structured Data for SEO -->
-    <script type="application/ld+json">
-    {
-        "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "Stream Transcript Extractor",
-        "description": "Bookmarklet tool to extract full transcripts from Microsoft Stream recordings on SharePoint. Defeats lazy-loaded transcript panes.",
-        "applicationCategory": "BrowserApplication",
-        "operatingSystem": "Any (Browser-based)",
-        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-        "author": { "@type": "Person", "name": "dog-broad", "url": "https://github.com/dog-broad" }
+                <div style="margin-top: 28px;">
+                    <div class="section-title" style="font-size:14px;">🔎 DOM Selectors Used</div>
+                    <div style="overflow-x:auto;">
+                        <table style="width:100%; font-size:12px; border-collapse:collapse; margin-top:8px;">
+                            <thead>
+                                <tr style="border-bottom:1px solid var(--border);">
+                                    <th style="text-align:left; padding:8px 12px; color:var(--accent); font-weight:600;">Selector</th>
+                                    <th style="text-align:left; padding:8px 12px; color:var(--accent); font-weight:600;">Purpose</th>
+                                </tr>
+                            </thead>
+                            <tbody style="color:var(--text-secondary);">
+                                <tr style="border-bottom:1px solid var(--border);">
+                                    <td style="padding:8px 12px; font-family:monospace; font-size:11px;">[data-testid="scroll-to-target-targeted-focus-zone"]</td>
+                                    <td style="padding:8px 12px;">Scrollable transcript container</td>
+                                </tr>
+                                <tr style="border-bottom:1px solid var(--border);">
+                                    <td style="padding:8px 12px; font-family:monospace; font-size:11px;">[data-list-index]</td>
+                                    <td style="padding:8px 12px;">Individual transcript entry cells</td>
+                                </tr>
+                                <tr style="border-bottom:1px solid var(--border);">
+                                    <td style="padding:8px 12px; font-family:monospace; font-size:11px;">[class*="itemDisplayName"]</td>
+                                    <td style="padding:8px 12px;">Speaker name element</td>
+                                </tr>
+                                <tr style="border-bottom:1px solid var(--border);">
+                                    <td style="padding:8px 12px; font-family:monospace; font-size:11px;">[id^="Header-timestamp-"]</td>
+                                    <td style="padding:8px 12px;">Timestamp element</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:8px 12px; font-family:monospace; font-size:11px;">[id^="sub-entry-"]</td>
+                                    <td style="padding:8px 12px;">Transcript text content</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: Troubleshoot -->
+            <div class="tab-panel" id="tab-troubleshoot" role="tabpanel">
+                <div class="section-title">🛠️ Troubleshooting</div>
+                <div class="section-subtitle">Common issues and their fixes.</div>
+
+                <details class="troubleshoot-item">
+                    <summary>Nothing happens when I click the bookmarklet</summary>
+                    <p>Chrome may have stripped the <code>javascript:</code> prefix. Right-click the bookmark → Edit → confirm the URL starts with <code>javascript:</code>. Also ensure you're on the Stream recording page, not a blank tab or the installer page.</p>
+                </details>
+
+                <details class="troubleshoot-item">
+                    <summary>Alert says "Transcript pane not found"</summary>
+                    <p>The transcript panel must be open and visible before clicking the bookmarklet. Click the "Transcript" button on the video player first. Wait 2-3 seconds for at least a few entries to appear, then click the bookmarklet.</p>
+                </details>
+
+                <details class="troubleshoot-item">
+                    <summary>Only partial entries were extracted</summary>
+                    <p>For very long recordings (1hr+), the script runs 3 scroll passes which covers most cases. If entries are still missing, simply run the bookmarklet a second time — it will re-extract from scratch. You can also try waiting a moment after opening the transcript pane to ensure it fully initializes.</p>
+                </details>
+
+                <details class="troubleshoot-item">
+                    <summary>New tab doesn't open or gets blocked</summary>
+                    <p>Your browser's popup blocker may have intercepted it. Look for a blocked popup icon (usually in the address bar, right side). Click it and select "Always allow popups from this site." Then try again.</p>
+                </details>
+
+                <details class="troubleshoot-item">
+                    <summary>Script fails to load (network error)</summary>
+                    <p>Your corporate VPN or proxy might block GitHub Gist URLs. Workaround: Open the <a href="https://gist.githubusercontent.com/dog-broad/6f9c99d3e3d11a5af9ba198bab9e2e6d/raw/transcript-extractor.js" target="_blank" style="color:var(--accent);">raw script</a>, copy its entire content, then paste it directly into the browser console (F12 → Console → Paste → Enter) on the Stream page.</p>
+                </details>
+
+                <details class="troubleshoot-item">
+                    <summary>Works in Chrome but not in Firefox</summary>
+                    <p>Ensure the bookmark URL starts with <code>javascript:</code> — Firefox is stricter about this. Firefox may also show a notification bar asking to allow the popup. Click "Allow" and the results tab will open.</p>
+                </details>
+
+                <details class="troubleshoot-item">
+                    <summary>Entries show wrong speaker attribution</summary>
+                    <p>The script inherits speaker identity from the nearest header element above each entry. If Stream groups multiple consecutive entries under one speaker header without repeating the name, the script carries the last known speaker forward. This matches Stream's own display behavior.</p>
+                </details>
+
+                <details class="troubleshoot-item">
+                    <summary>Extraction takes very long / seems stuck</summary>
+                    <p>For recordings over 2 hours, extraction may take 2-3 minutes. The progress overlay shows a live counter — if it's still incrementing, it's working. The "stuck" detection (6 consecutive failed scrolls) will naturally end each pass when the bottom is reached.</p>
+                </details>
+            </div>
+
+            <!-- TAB: Manual Install -->
+            <div class="tab-panel" id="tab-manual" role="tabpanel">
+                <div class="section-title">🔧 Manual Installation</div>
+                <div class="section-subtitle">If drag-and-drop doesn't work in your browser, create the bookmark manually.</div>
+
+                <ol class="step-list">
+                    <li class="step-item">
+                        <div class="step-num">1</div>
+                        <div class="step-body">
+                            <h3>Show Bookmarks Bar</h3>
+                            <p>Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> (Windows/Linux) or <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> (Mac).</p>
+                        </div>
+                    </li>
+                    <li class="step-item">
+                        <div class="step-num">2</div>
+                        <div class="step-body">
+                            <h3>Create a New Bookmark</h3>
+                            <p>Right-click the Bookmarks Bar → <strong>"Add page..."</strong> or <strong>"Add bookmark"</strong>. Alternatively, open Bookmark Manager with <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd>.</p>
+                        </div>
+                    </li>
+                    <li class="step-item">
+                        <div class="step-num">3</div>
+                        <div class="step-body">
+                            <h3>Set Name & Paste URL</h3>
+                            <p>Set name to anything (e.g., "📜 Extract Transcript"). Paste the code below as the URL:</p>
+                        </div>
+                    </li>
+                </ol>
+
+                <div class="code-wrapper">
+                    <div class="code-block" id="bookmarkletCode">javascript:void((async()=>{try{var r=await fetch('https://gist.githubusercontent.com/dog-broad/6f9c99d3e3d11a5af9ba198bab9e2e6d/raw/transcript-extractor.js?v='+Date.now());if(!r.ok)throw new Error('HTTP '+r.status);var t=await r.text();eval(t);}catch(e){alert('Failed to load transcript extractor: '+e.message);}})())</div>
+                    <button class="code-copy-btn" onclick="copyCode()">📋 Copy</button>
+                </div>
+
+                <ol class="step-list" start="4">
+                    <li class="step-item">
+                        <div class="step-num">4</div>
+                        <div class="step-body">
+                            <h3>Save — You're Done</h3>
+                            <p>Click Save. The bookmarklet is now in your bookmarks bar, ready to use on any Stream recording page.</p>
+                        </div>
+                    </li>
+                </ol>
+
+                <div style="margin-top:24px; padding:16px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius);">
+                    <div style="font-size:13px; font-weight:600; margin-bottom:8px; display:flex; align-items:center; gap:8px;">
+                        <span>💡</span> How updates work
+                    </div>
+                    <p style="font-size:12px; color:var(--text-secondary); line-height:1.7;">
+                        The bookmarklet is just a tiny loader (~200 bytes). Every time you click it, it fetches the latest version of the extraction script from <a href="https://gist.github.com/dog-broad/6f9c99d3e3d11a5af9ba198bab9e2e6d" target="_blank" style="color:var(--accent);">this Gist</a>. When the script is updated, everyone automatically gets the new version — no reinstall needed.
+                    </p>
+                </div>
+
+                <div style="margin-top:16px; padding:16px; background:rgba(100,181,246,0.05); border:1px solid rgba(100,181,246,0.2); border-radius:var(--radius);">
+                    <div style="font-size:13px; font-weight:600; margin-bottom:8px; display:flex; align-items:center; gap:8px; color:#64B5F6;">
+                        <span>🛡️</span> Console Fallback
+                    </div>
+                    <p style="font-size:12px; color:var(--text-secondary); line-height:1.7;">
+                        If the bookmarklet doesn't work at all due to strict enterprise policies, you can always paste the script directly into the browser console. Press <kbd>F12</kbd> → Console tab → paste the <a href="https://gist.githubusercontent.com/dog-broad/6f9c99d3e3d11a5af9ba198bab9e2e6d/raw/transcript-extractor.js" target="_blank" style="color:#64B5F6;">raw script content</a> → press Enter.
+                    </p>
+                </div>
+            </div>
+
+        </div>
+    </section>
+</div>
+
+<!-- Structured Data for SEO -->
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Stream Transcript Extractor",
+    "description": "Bookmarklet tool to extract full transcripts from Microsoft Stream recordings on SharePoint. Defeats lazy-loaded virtualized transcript panes.",
+    "applicationCategory": "BrowserApplication",
+    "operatingSystem": "Any (Browser-based)",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "author": { "@type": "Person", "name": "dog-broad", "url": "https://github.com/dog-broad" },
+    "url": "https://dog-broad.github.io/stream-transcript-extractor/"
+}
+</script>
+
+<script>
+    // ===== TAB SWITCHING =====
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabPanels = document.querySelectorAll('.tab-panel');
+
+    tabBtns.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            // Deactivate all
+            tabBtns.forEach(function(b) { b.classList.remove('active'); b.setAttribute('aria-selected', 'false'); });
+            tabPanels.forEach(function(p) { p.classList.remove('active'); });
+
+            // Activate clicked
+            btn.classList.add('active');
+            btn.setAttribute('aria-selected', 'true');
+            var target = document.getElementById('tab-' + btn.getAttribute('data-tab'));
+            if (target) target.classList.add('active');
+        });
+    });
+
+    // ===== COPY CODE =====
+    function copyCode() {
+        var code = document.getElementById('bookmarkletCode').textContent;
+        navigator.clipboard.writeText(code).then(function() {
+            var btn = document.querySelector('.code-copy-btn');
+            btn.textContent = '✅ Copied!';
+            btn.style.background = 'var(--accent)';
+            btn.style.color = '#000';
+            setTimeout(function() {
+                btn.textContent = '📋 Copy';
+                btn.style.background = '';
+                btn.style.color = '';
+            }, 2000);
+        });
     }
-    </script>
+</script>
 
-    <script>
-        function copyBookmarkletCode() {
-            const code = document.getElementById('bookmarkletCode').textContent;
-            navigator.clipboard.writeText(code).then(() => {
-                const btn = document.querySelector('.copy-btn');
-                const original = btn.textContent;
-                btn.textContent = '✅ Copied!';
-                btn.style.background = 'var(--accent)';
-                btn.style.color = '#000';
-                setTimeout(() => {
-                    btn.textContent = original;
-                    btn.style.background = '';
-                    btn.style.color = '';
-                }, 2000);
-            });
-        }
-    </script>
 </body>
 </html>
